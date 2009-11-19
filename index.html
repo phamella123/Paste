@@ -1,0 +1,95 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+	<head>
+		<title>Plain Text Paste for Firefox</title>
+		<style>
+			body {
+				padding: 1em 2em;
+			}
+			#title, #text {
+				clear: both;
+				color: green;
+				outline: 1px dotted blue;
+			}
+			#info {
+				-moz-box-sizing: border-box;
+				width: 35%;
+				float: right;
+				padding: 0 1em;
+				background-color: lightgreen;
+				-moz-border-radius: 10px;
+				-moz-box-shadow: black .5em .5em 1em;
+			}
+		</style>
+	</head>
+	<body>
+
+		<div style="-moz-box-sizing: border-box; width: 55%; float: left; padding-right: 1em">
+			<h1>Plain Text Paste <span style="font-size: .5em">for</span> Firefox</h1>
+
+			<p>
+				This paragraph <strong>contains</strong> both markup and
+				<script>var redirect = function(){ window.location = "http://www.google.com/"; }</script>
+				Javascript in the <strong>middle</strong> of itself.
+			</p>
+			<p>
+				This is another paragraph. Try copying some or all of the text in the paragraph above, and even including the title and/or this paragraph, and behold forced plain text pasting magic when pasting it into the editable areas below.
+			</p>
+
+			<h1 id="title" contenteditable="true">Editable Title (h1)</h1>
+
+			<p id="text" contenteditable="true">Editable paragraph (p).</p>
+		</div>
+
+		<div id="info">
+			<h2>Info</h2>
+			<p>Made for (and only tested on) Firefox 3.5.</p>
+			<p>When pasting, a dialog with a nasty warning appears, which has to be accepted in order to continue the paste operation. This is because I just couldn't find any other way to do this...</p>
+			<p>I have heard rumors that Firefox 3.6 might include enhancements that would allow access to the clipboard, <strong>only</strong> for and during the onpaste event, and thereby take care of the need for the nasty security dialog for paste operations like this. I still think the way it works now is acceptable since this kind of editing would mostly be done by admins that trust the web site. (I hope.). But yes, I allready know it doesn't work online... Damn... and damn.</p>
+			<p>Also, I think this technique is possible to replicate for Webkit, which I believe already has refined this operation to only allow access to the clipboard <strong>when</strong> actual pasting is going on. But Webkit doesn't execute Javascript in paste content so it's actually easy to do this in alternative ways for Webkit (display inline for all tags etc.). I'll test this approach on Webkit later though, since it's better, if it works.</p>
+			<p>If someone knows or figures out how to do this in a much better way, in a way that works online as well, please give feedback.</p>
+		</div>
+
+		<script>
+
+		// Paste plain text
+		var pastePlainText = function(event){
+
+			netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+			this.clipboardId = Components.interfaces.nsIClipboard;
+			this.clipboard = Components.classes['@mozilla.org/widget/clipboard;1'].getService(this.clipboardId);
+
+			var transfer = Components.classes['@mozilla.org/widget/transferable;1'].createInstance(Components.interfaces.nsITransferable);
+			transfer.addDataFlavor('text/unicode');
+
+			this.clipboard.getData(transfer, this.clipboardId.kGlobalClipboard);
+
+			var str = {};
+			var strLength = {};
+			transfer.getTransferData('text/unicode', str, strLength);
+
+			str = str.value.QueryInterface(Components.interfaces.nsISupportsString);
+			str.data = str.data.substring(0, strLength.value / 2).replace(/\n/g, " ");
+
+			transfer.setTransferData("text/unicode", str, str.data.length * 2);
+			this.clipboard.setData(transfer, null, this.clipboard.kGlobalClipboard);
+		}
+		
+		// Prevent enter
+		var preventEnter = function(e){
+			if (e.keyCode == 13) e.preventDefault();
+		}
+
+		// Add listener for paste, to force plain text.
+		document.getElementById('title').addEventListener('paste', pastePlainText, false);
+		document.getElementById('text').addEventListener('paste', pastePlainText, false);
+
+		// Add listener for keypress, to prevent enter.
+		document.getElementById('title').addEventListener('keypress', preventEnter, false);
+		document.getElementById('text').addEventListener('keypress', preventEnter, false);
+
+		</script>
+
+	</body>
+</html>
